@@ -6,14 +6,14 @@
 }
 
 .editor-description {
-  color: #00fff1;
+  color: var(--primary-color);
   margin-bottom: 1.5rem;
   font-size: 1rem;
   line-height: 1.5;
 }
 
 .editor-description code {
-  background-color: rgba(0, 255, 241, 0.1);
+  background-color: var(--code-bg);
   padding: 0.2rem 0.4rem;
   border-radius: 3px;
   font-family: 'Courier New', Courier, monospace;
@@ -22,14 +22,14 @@
 .tabs {
   display: flex;
   gap: 0.5rem;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tab-button {
   padding: 0.5rem 1rem;
   background: none;
   border: none;
-  color: #00fff1;
+  color: var(--primary-color);
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.2s ease;
@@ -37,16 +37,16 @@
 }
 
 .tab-button:hover {
-  background-color: rgba(0, 255, 241, 0.1);
+  background-color: var(--hover-bg);
 }
 
 .tab-button.active {
-  background-color: rgba(0, 255, 241, 0.05);
-  border-bottom: 2px solid #00fff1;
+  background-color: var(--hover-bg);
+  border-bottom: 2px solid var(--primary-color);
 }
 
 .editor-container {
-  border: 1px solid #333;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -75,55 +75,55 @@
 }
 
 .publish-button {
-  background-color: #4caf50;
+  background-color: var(--success-color);
   color: white;
   border: none;
 }
 
 .publish-button:hover {
-  background-color: #45a049;
+  background-color: var(--success-hover);
 }
 
 .publish-button:disabled {
-  background-color: #cccccc;
+  background-color: var(--disabled-color);
   cursor: not-allowed;
 }
 
 .reset-button {
-  background-color: #f44336;
+  background-color: var(--error-color);
   color: white;
   border: none;
 }
 
 .reset-button:hover {
-  background-color: #d32f2f;
+  background-color: var(--error-hover);
 }
 
 .reset-button:disabled {
-  background-color: #cccccc;
+  background-color: var(--disabled-color);
   cursor: not-allowed;
 }
 
 .cancel-button {
-  background-color: #ff9800;
+  background-color: var(--warning-color);
   color: white;
   border: none;
 }
 
 .cancel-button:hover {
-  background-color: #f57c00;
+  background-color: var(--warning-hover);
 }
 
 .unsaved-changes {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #ff9800;
+  color: var(--warning-color);
   font-size: 14px;
 }
 
 .unsaved-icon {
-  color: #ff9800;
+  color: var(--warning-color);
   font-size: 16px;
 }
 
@@ -143,13 +143,13 @@
 }
 
 .status-message.success {
-  background-color: rgba(0, 255, 0, 0.1);
-  color: #00ff00;
+  background-color: var(--success-bg);
+  color: var(--success-color);
 }
 
 .status-message.error {
-  background-color: rgba(255, 0, 0, 0.1);
-  color: #ff0000;
+  background-color: var(--error-bg);
+  color: var(--error-color);
 }
 
 .status-icon {
@@ -160,9 +160,9 @@
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--spinner-border);
   border-radius: 50%;
-  border-top-color: #000;
+  border-top-color: var(--spinner-color);
   animation: spin 1s ease-in-out infinite;
 }
 
@@ -176,7 +176,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--modal-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,8 +184,8 @@
 }
 
 .error-modal-content {
-  background-color: #1e1e1e;
-  border: 1px solid #333;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 1.5rem;
   width: 80%;
@@ -196,11 +196,11 @@
 
 .error-modal-content h3 {
   margin-top: 0;
-  color: #ff0000;
+  color: var(--error-color);
 }
 
 .error-modal-content pre {
-  background-color: #000;
+  background-color: var(--bg-secondary);
   padding: 1rem;
   border-radius: 4px;
   overflow-x: auto;
@@ -211,22 +211,22 @@
 .close-modal-button {
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  background-color: #333;
-  color: #fff;
+  background-color: var(--button-bg);
+  color: var(--text-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
 
 .close-modal-button:hover {
-  background-color: #444;
+  background-color: var(--button-hover-bg);
 }
 
 .error-box {
   margin-top: 20px;
-  border: 1px solid #ff6b6b;
+  border: 1px solid var(--error-color);
   border-radius: 4px;
-  background-color: rgba(255, 107, 107, 0.1);
+  background-color: var(--error-bg);
   overflow: hidden;
 }
 
@@ -234,8 +234,8 @@
   display: flex;
   align-items: center;
   padding: 10px 15px;
-  background-color: rgba(255, 107, 107, 0.2);
-  border-bottom: 1px solid #ff6b6b;
+  background-color: var(--error-bg);
+  border-bottom: 1px solid var(--error-color);
 }
 
 .error-icon {
@@ -245,7 +245,7 @@
 
 .error-title {
   font-weight: bold;
-  color: #ff6b6b;
+  color: var(--error-color);
 }
 
 .error-content {
@@ -261,5 +261,5 @@
   font-family: monospace;
   font-size: 13px;
   line-height: 1.5;
-  color: #d4d4d4;
+  color: var(--text-primary);
 }

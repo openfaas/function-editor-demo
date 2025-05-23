@@ -29,7 +29,7 @@ const defaultPackageJson = `{
   "dependencies": {}
 }`;
 
-const FunctionEditor = ({ functionName }) => {
+const FunctionEditor = ({ functionName, setFunctionName }) => {
   const [handlerCode, setHandlerCode] = useState(defaultHandler);
   const [packageJson, setPackageJson] = useState(defaultPackageJson);
   const [activeTab, setActiveTab] = useState('handler');
@@ -324,7 +324,7 @@ const FunctionEditor = ({ functionName }) => {
             language="javascript"
             value={handlerCode}
             onChange={handleHandlerChange}
-            theme="vs-dark"
+            theme={window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'light'}
             options={{
               minimap: { enabled: false },
               fontSize: 14,
@@ -340,7 +340,7 @@ const FunctionEditor = ({ functionName }) => {
             language="json"
             value={packageJson}
             onChange={handlePackageJsonChange}
-            theme="vs-dark"
+            theme={window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'light'}
             options={{
               minimap: { enabled: false },
               fontSize: 14,
