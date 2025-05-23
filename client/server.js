@@ -13,6 +13,12 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const imagePrefix = process.env.IMAGE_PREFIX || "ttl.sh/openfaas"
+const builderPayloadSecret = process.env.BUILDER_PAYLOAD_SECRET || "./secrets/payload.txt"
+const builderURL = process.env.BUILDER_URL || 'http://127.0.0.1:8081'
+const basicAuthSecret = process.env.BASIC_AUTH_SECRET || "./secrets/basic-auth-password.txt"
+const gatewayURL = process.env.GATEWAY_URL || 'http://127.0.0.1:8080'
+
 // Define templates directory
 const TEMPLATES_DIR = path.join(__dirname, 'templates');
 
@@ -127,7 +133,6 @@ function generateRandomString(length) {
   }
   return result;
 }
-
 // Build function using OpenFaaS CLI
 async function buildFunction(functionName, handler, lang, packageJson = null) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'builder-'));
@@ -137,7 +142,7 @@ async function buildFunction(functionName, handler, lang, packageJson = null) {
     const tag = generateRandomString(8);
     
     // Create the full image name
-    const image = `registry.digitalocean.com/openfaas-sandbox/${functionName}:${tag}`;
+    const image = `${imagePrefix}/${functionName}:${tag}`;
     
     // Create stack.yaml first
     const stackYaml = `version: 1.0
@@ -206,7 +211,8 @@ functions:
     }
     
     // Create build config
-    let buildConfig = { image, buildArgs: {}, push: true };
+    let buildConfig = { image, buildArgs: {}, push: false };
+    console.log(buildConfig)
     await fs.writeFile(
       path.join(tempDir, 'com.openfaas.docker.config'),
       JSON.stringify(buildConfig),
@@ -273,7 +279,7 @@ functions:
     );
     
     // Read secret and calculate hash
-    let secret = await fs.readFile(path.join(__dirname, 'payload.txt'), 'utf8');
+    let secret = await fs.readFile(builderPayloadSecret, 'utf8');
     let data = await fs.readFile(tarFile);
     let hash = crypto
       .createHmac('sha256', secret.trim())
@@ -285,7 +291,7 @@ functions:
       let res = await axios({
         data: data,
         method: 'post',
-        url: 'https://builder.sandbox.openfaas.com/build',
+        url: `${builderURL}/build`,
         headers: {
           'Content-Type': 'application/octet-stream',
           'X-Build-Signature': 'sha256=' + hash,
@@ -375,7 +381,7 @@ app.post('/api/deploy', async (req, res) => {
       // Read the password from the basic-auth-password.txt file
       let password = '';
       try {
-        password = await fs.readFile(path.join(__dirname, 'basic-auth-password.txt'), 'utf8');
+        password = await fs.readFile(basicAuthSecret, 'utf8');
         password = password.trim(); // Remove any whitespace
       } catch (err) {
         console.warn('Could not read basic-auth-password.txt, using empty password');
@@ -407,7 +413,7 @@ app.post('/api/deploy', async (req, res) => {
       try {
         const checkResponse = await axios({
           method: 'GET',
-          url: `https://gateway.sandbox.openfaas.com/system/function/${functionName}`,
+          url: `${gatewayURL}/system/function/${functionName}`,
           headers: headers
         });
         
@@ -427,7 +433,7 @@ app.post('/api/deploy', async (req, res) => {
       // Deploy the function using PUT or POST based on whether it exists
       const deployResponse = await axios({
         method: functionExists ? 'PUT' : 'POST',
-        url: 'https://gateway.sandbox.openfaas.com/system/functions',
+        url: `${gatewayURL}/system/functions`,
         headers: headers,
         data: functionData
       });
@@ -480,7 +486,7 @@ app.post('/api/invoke', async (req, res) => {
     // Read the password from the basic-auth-password.txt file
     let password = '';
     try {
-      password = await fs.readFile(path.join(__dirname, 'basic-auth-password.txt'), 'utf8');
+      password = await fs.readFile(basicAuthSecret, 'utf8');
       password = password.trim(); // Remove any whitespace
     } catch (err) {
       console.warn('Could not read basic-auth-password.txt, using empty password');
@@ -497,7 +503,7 @@ app.post('/api/invoke', async (req, res) => {
     try {
       const invokeResponse = await axios({
         method: 'POST',
-        url: `https://gateway.sandbox.openfaas.com/function/${functionName}`,
+        url: `${gatewayURL}/function/${functionName}`,
         headers: headers,
         data: payload || {},
         validateStatus: false, // This ensures we get headers even for error responses
@@ -546,7 +552,7 @@ app.post('/api/logs', async (req, res) => {
     // Read the password from the basic-auth-password.txt file
     let password = '';
     try {
-      password = await fs.readFile(path.join(__dirname, 'basic-auth-password.txt'), 'utf8');
+      password = await fs.readFile(basicAuthSecret, 'utf8');
       password = password.trim(); // Remove any whitespace
     } catch (err) {
       console.warn('Could not read basic-auth-password.txt, using empty password');
@@ -564,7 +570,7 @@ app.post('/api/logs', async (req, res) => {
     
     // Fetch logs from OpenFaaS
     const logsResponse = await fetch(
-      `https://gateway.sandbox.openfaas.com/system/logs?${params.toString()}`,
+      `${gatewayURL}/system/logs?${params.toString()}`,
       {
         method: 'GET',
         headers: {
