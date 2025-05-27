@@ -11,8 +11,10 @@ function App() {
 
   return (
     <div className="app">
-      <h1 className="title">Function Editor</h1>
-      <div className="branding">Powered by OpenFaaS</div>
+      <div className="header">
+        <h1 className="title">Function Editor</h1>
+        <div className="branding">Powered by OpenFaaS</div>
+      </div>
       
       <div className="navigation">
         <button 

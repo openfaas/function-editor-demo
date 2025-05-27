@@ -273,7 +273,7 @@ const FunctionTester = ({ functionName }) => {
                 language="json"
                 value={payload}
                 onChange={handlePayloadChange}
-                theme="vs-dark"
+                theme={window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'light'}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 14,
@@ -428,7 +428,7 @@ const FunctionTester = ({ functionName }) => {
                     height="300px"
                     language={responseContentType}
                     value={responseText}
-                    theme="vs-dark"
+                    theme={window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'light'}
                     options={{
                       readOnly: true,
                       minimap: { enabled: false },
