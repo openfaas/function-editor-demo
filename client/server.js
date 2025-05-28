@@ -14,9 +14,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const imagePrefix = process.env.IMAGE_PREFIX || "ttl.sh/openfaas"
-const builderPayloadSecret = process.env.BUILDER_PAYLOAD_SECRET || "./secrets/payload.txt"
+const builderPayloadSecret = process.env.BUILDER_PAYLOAD_SECRET || ".secrets/payload.txt"
 const builderURL = process.env.BUILDER_URL || 'http://127.0.0.1:8081'
-const basicAuthSecret = process.env.BASIC_AUTH_SECRET || "./secrets/basic-auth-password.txt"
+const basicAuthSecret = process.env.BASIC_AUTH_SECRET || ".secrets/basic-auth-password.txt"
 const gatewayURL = process.env.GATEWAY_URL || 'http://127.0.0.1:8080'
 
 // Define templates directory
