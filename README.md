@@ -2,7 +2,7 @@
 
 This repo contains a sample application that shows how OpenFaaS can be used to build a basic function editor that let's users edit, deploy and invoke custom code from the browser.
 
-The sample app consists of two parts. A frontend implemented as a single page [React](https://react.dev/) application and [Express](https://expressjs.com/) server for the backend API. Users can edit a Node.js function in the UI using a code editor. Clicking the `Publish and Deploy` button deploys the function to OpenFaaS. Once deployed the `Test Function` page can be used to invoke the function, inspect responses and view the function logs.
+The sample app consists of two parts. A frontend implemented as a single page [React](https://react.dev/) application and [Express](https://expressjs.com/) server for the backend API. Users can edit a Node.js function in the UI using a code editor. Clicking the *Publish & Deploy* button deploys the function to OpenFaaS. Once deployed the *Test Function* page can be used to invoke the function, inspect responses and view the function logs.
 
 It sample app is a basic implementation of the use case described in the our blog post: [Integrate FaaS Capabilities into Your Platform with OpenFaaS](https://www.openfaas.com/blog/add-a-faas-capability/)
 
@@ -69,9 +69,9 @@ Configuration parameters:
 
 - `IMAGE_PREFIX` - Image prefix used for pushing the images, e.g. `docker.io/openfaas`. Make sur your function builder [has the correct permissions](https://github.com/openfaas/faas-netes/tree/master/chart/pro-builder#registry-authentication) to push to this registry.
 - `BUILDER_URL` - URl of the function builder API (default: http://127.0.0.1:8081)
-- `BUILDER_PAYLOAD_SECRET` - Path the file containing the HMAC signing secret created during the installation of the function builder. (default: "./builder/payload.txt")
+- `BUILDER_PAYLOAD_SECRET` - Path the file containing the HMAC signing secret created during the installation of the function builder. (default: ".secrets/payload.txt")
 - `GATEWAY_URL` - URL of the OpenFaaS Gateway (default: http://127.0.0.1:8080)
-- `BASIC_AUTH_SECRET` - Basic auth secret to authenticate with the OpenFaaS Gateway (default: "./secrets/basic-auth-password.txt")
+- `BASIC_AUTH_SECRET` - Basic auth secret to authenticate with the OpenFaaS Gateway (default: ".secrets/basic-auth-password.txt")
 
 - [Function Builder examples](https://github.com/openfaas/function-builder-examples)
 
