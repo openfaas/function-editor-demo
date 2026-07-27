@@ -41,8 +41,6 @@ const CodeEditor = ({ functionName, setFunctionName }) => {
     setIsDeploying(true);
     setShowLogs(true);
     setLogs([]);
-    const startTime = performance.now();
-
     try {
       // First publish the function
       setLogs(prev => [...prev, 'Building function using OpenFaaS sandbox builder...']);
@@ -163,4 +161,4 @@ const CodeEditor = ({ functionName, setFunctionName }) => {
   );
 };
 
-export default CodeEditor; 
+export default CodeEditor;
