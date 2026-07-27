@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
 import crypto from 'crypto';
@@ -52,7 +52,7 @@ async function downloadTemplates() {
     
     // List contents of the template directory
     try {
-      const files = await fs.readdir(templateDir);
+      await fs.readdir(templateDir);
     } catch (err) {
       console.error(`Error reading template directory: ${err.message}`);
     }
@@ -94,7 +94,7 @@ async function downloadTemplates() {
         
         // List contents of the template directory
         try {
-          const files = await fs.readdir(templateDir);
+          await fs.readdir(templateDir);
         } catch (err) {
           console.error(`Error reading template directory: ${err.message}`);
         }
@@ -120,9 +120,6 @@ const port = 3001;
 
 app.use(cors());
 app.use(express.json());
-
-// Store deployed functions in memory for demo
-const deployedFunctions = new Map();
 
 // Generate a random string of specified length
 function generateRandomString(length) {
@@ -649,4 +646,4 @@ app.post('/api/logs', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
-}); 
+});

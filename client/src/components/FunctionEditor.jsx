@@ -29,18 +29,15 @@ const defaultPackageJson = `{
   "dependencies": {}
 }`;
 
-const FunctionEditor = ({ functionName, setFunctionName }) => {
+const FunctionEditor = ({ functionName }) => {
   const [handlerCode, setHandlerCode] = useState(defaultHandler);
   const [packageJson, setPackageJson] = useState(defaultPackageJson);
   const [activeTab, setActiveTab] = useState('handler');
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isDeploying, setIsDeploying] = useState(false);
   const [publishStatus, setPublishStatus] = useState('');
   const [deployStatus, setDeployStatus] = useState('');
   const [publishError, setPublishError] = useState(null);
   const [deployError, setDeployError] = useState(null);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [currentImageTag, setCurrentImageTag] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isOperationInProgress, setIsOperationInProgress] = useState(false);
@@ -114,7 +111,6 @@ const FunctionEditor = ({ functionName, setFunctionName }) => {
     }
     
     setIsPublishing(false);
-    setIsDeploying(false);
     setIsOperationInProgress(false);
     setOperationStartTime(null);
     
@@ -167,7 +163,7 @@ const FunctionEditor = ({ functionName, setFunctionName }) => {
           parsedPackageJson.dependencies = {};
         }
       } catch (error) {
-        throw new Error(`Invalid package.json: ${error.message}`);
+        throw new Error(`Invalid package.json: ${error.message}`, { cause: error });
       }
       
       // Send the function code and package.json to the server
@@ -229,8 +225,6 @@ const FunctionEditor = ({ functionName, setFunctionName }) => {
     setDeployStatus('');
     
     // Set deploying state
-    setIsDeploying(true);
-    
     try {
       // Use the provided image tag or fall back to the current one
       const tagToUse = imageTag || currentImageTag;
@@ -264,7 +258,6 @@ const FunctionEditor = ({ functionName, setFunctionName }) => {
       
       // Clear operation in progress state
       setIsPublishing(false);
-      setIsDeploying(false);
       setIsOperationInProgress(false);
       setOperationStartTime(null);
       
@@ -276,7 +269,6 @@ const FunctionEditor = ({ functionName, setFunctionName }) => {
     } catch (error) {
       console.error('Deploy error:', error);
       setDeployError(error.message);
-      setIsDeploying(false);
       setIsOperationInProgress(false);
       setOperationStartTime(null);
       
@@ -426,20 +418,6 @@ const FunctionEditor = ({ functionName, setFunctionName }) => {
         </div>
       )}
       
-      {showErrorModal && (
-        <div className="error-modal">
-          <div className="error-modal-content">
-            <h3>Error Details</h3>
-            <pre>{errorMessage}</pre>
-            <button 
-              className="close-modal-button"
-              onClick={() => setShowErrorModal(false)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

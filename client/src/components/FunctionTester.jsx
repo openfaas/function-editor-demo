@@ -10,7 +10,6 @@ const defaultPayload = `{
 
 const FunctionTester = ({ functionName }) => {
   const [payload, setPayload] = useState(defaultPayload);
-  const [response, setResponse] = useState(null);
   const [responseText, setResponseText] = useState('');
   const [responseContentType, setResponseContentType] = useState('plaintext');
   const [contentLength, setContentLength] = useState(0);
@@ -25,7 +24,6 @@ const FunctionTester = ({ functionName }) => {
   const [logs, setLogs] = useState('No logs available');
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [logsError, setLogsError] = useState(null);
-  const [editorKey, setEditorKey] = useState(0);
   const [isEditorMounted, setIsEditorMounted] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -62,8 +60,6 @@ const FunctionTester = ({ functionName }) => {
       if (isEditorMounted) {
         // Update the logs content
         setLogs(result.logs);
-        // Increment the editor key to force a re-render
-        setEditorKey(prev => prev + 1);
       }
     } catch (error) {
       if (isEditorMounted) {
@@ -147,7 +143,6 @@ const FunctionTester = ({ functionName }) => {
 
     setIsInvoking(true);
     setError(null);
-    setResponse(null);
     setResponseText('');
     setResponseContentType('plaintext');
     setContentLength(0);
@@ -185,7 +180,6 @@ const FunctionTester = ({ functionName }) => {
       const timeTaken = (endTime - startTime) / 1000; // Convert to seconds
       
       // Set the response data, even if it's an error response from the function
-      setResponse(result.data);
       
       // Determine content type and format response text
       let contentType = 'plaintext';
@@ -203,7 +197,7 @@ const FunctionTester = ({ functionName }) => {
             JSON.parse(result.data);
             contentType = 'json';
             responseText = JSON.stringify(JSON.parse(result.data), null, 2);
-          } catch (e) {
+          } catch {
             contentType = 'plaintext';
             responseText = result.data;
           }
@@ -464,4 +458,4 @@ const FunctionTester = ({ functionName }) => {
   );
 };
 
-export default FunctionTester; 
+export default FunctionTester;

@@ -7,7 +7,7 @@ import './components/FunctionTester.css'
 
 function App() {
   const [activePage, setActivePage] = useState('editor');
-  const [functionName, setFunctionName] = useState('fn1');
+  const [functionName] = useState('fn1');
 
   return (
     <div className="app">
@@ -32,7 +32,7 @@ function App() {
       </div>
       
       {activePage === 'editor' ? (
-        <FunctionEditor functionName={functionName} setFunctionName={setFunctionName} />
+        <FunctionEditor functionName={functionName} />
       ) : (
         <FunctionTester functionName={functionName} />
       )}
