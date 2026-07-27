@@ -1,16 +1,16 @@
 # OpenFaaS Function Editor Example
 
-This repo contains a sample application that shows how OpenFaaS can be used to build a basic function editor that let's users edit, deploy and invoke custom code from the browser.
+This repo contains a sample application that shows how OpenFaaS can be used to build a basic function editor that lets users edit, deploy and invoke custom code from the browser.
 
-The sample app consists of two parts. A frontend implemented as a single page [React](https://react.dev/) application and [Express](https://expressjs.com/) server for the backend API. Users can edit a Node.js function in the UI using a code editor. Clicking the *Publish & Deploy* button deploys the function to OpenFaaS. Once deployed the *Test Function* page can be used to invoke the function, inspect responses and view the function logs.
+The sample app consists of two parts: a frontend implemented as a single-page [React](https://react.dev/) application and an [Express](https://expressjs.com/) server for the backend API. Users can edit a Node.js function in the UI using a code editor. Clicking the *Publish & Deploy* button deploys the function to OpenFaaS. Once deployed, the *Test Function* page can be used to invoke the function, inspect responses and view the function logs.
 
-It sample app is a basic implementation of the use case described in the our blog post: [Integrate FaaS Capabilities into Your Platform with OpenFaaS](https://www.openfaas.com/blog/add-a-faas-capability/)
+This sample app is a basic implementation of the use case described in our blog post: [Integrate FaaS Capabilities into Your Platform with OpenFaaS](https://www.openfaas.com/blog/add-a-faas-capability/)
 
 ![Screenshot of the function editor UI](/images/function-editor.png)
 
 ## How it works
 
-The application uses readily available OpenFaaS APIs to take user-supplied source-code, produce an OpenFaaS function image and deploy it to OpenFaaS to get a custom HTTP endpoint.
+The application uses readily available OpenFaaS APIs to take user-supplied source code, produce an OpenFaaS function image and deploy it to OpenFaaS to get a custom HTTP endpoint.
 
 OpenFaaS components used by the sample application:
 
@@ -24,22 +24,22 @@ OpenFaaS components used by the sample application:
 
     API for managing and invoking functions, secrets and namespaces.
 
-    The OpenFaaS REST API has endpoints to create and manage tenant namespaces, to deploy new functions, list and query existing ones, invoke them and query function logs.
+    The OpenFaaS REST API has endpoints to create and manage tenant namespaces, deploy new functions, list and query existing ones, invoke them and query function logs.
 
 **Overview**
 
-1. User supplied source-code from the editor is send to the backends `/api/publish` endpoint.
+1. User-supplied source code from the editor is sent to the backend's `/api/publish` endpoint.
 2. The publish endpoint prepares the build context using a function template and invokes the [OpenFaaS Function Builder REST API](https://docs.openfaas.com/openfaas-pro/builder/).
-3. The OpenFaaS function builder builds the container image for the function and published it to the configured registry.
-4. After the function has been published the `/api/publish` endpoint is called. The backend server calls the [OpenFaaS API](https://docs.openfaas.com/reference/rest-api/) to deploy the function.
+3. The OpenFaaS Function Builder builds the container image for the function and publishes it to the configured registry.
+4. After the function has been published, the `/api/deploy` endpoint is called. The backend server calls the [OpenFaaS API](https://docs.openfaas.com/reference/rest-api/) to deploy the function.
 5. The function is ready to be invoked over HTTP.
 
-A couple of additional OpenFaaS API endpoints are exposed through the backed server that allow users to invoke the function and inspect logs in the UI:
+A couple of additional OpenFaaS API endpoints are exposed through the backend server that allow users to invoke the function and inspect logs in the UI:
 
-- `/api/invoke` - Proxies the functions HTTP endpoint.
-- `/api/logs` - Uses the [OpenFaaS APIs logs endpoint](https://docs.openfaas.com/reference/rest-api/#logs) to get the logs for the function. 
+- `/api/invoke` - Proxies the function's HTTP endpoint.
+- `/api/logs` - Uses the [OpenFaaS API's logs endpoint](https://docs.openfaas.com/reference/rest-api/#logs) to get the logs for the function.
 
-> Note: Authentication for the backend API as this is out of scope for this examples. Keep in mind the for a production ready app some form of authentication should be added to protect the API endpoint.
+> Note: Authentication for the backend API is out of scope for this example. Keep in mind that for a production-ready app, some form of authentication should be added to protect the API endpoint.
 
 ## Quick start
 
@@ -67,9 +67,9 @@ npm install
 
 Configuration parameters:
 
-- `IMAGE_PREFIX` - Image prefix used for pushing the images, e.g. `docker.io/openfaas`. Make sur your function builder [has the correct permissions](https://github.com/openfaas/faas-netes/tree/master/chart/pro-builder#registry-authentication) to push to this registry.
-- `BUILDER_URL` - URl of the function builder API (default: http://127.0.0.1:8081)
-- `BUILDER_PAYLOAD_SECRET` - Path the file containing the HMAC signing secret created during the installation of the function builder. (default: ".secrets/payload.txt")
+- `IMAGE_PREFIX` - Image prefix used for pushing the images, e.g. `docker.io/openfaas`. Make sure your function builder [has the correct permissions](https://github.com/openfaas/faas-netes/tree/master/chart/pro-builder#registry-authentication) to push to this registry.
+- `BUILDER_URL` - URL of the function builder API (default: http://127.0.0.1:8081)
+- `BUILDER_PAYLOAD_SECRET` - Path to the file containing the HMAC signing secret created during the installation of the function builder. (default: ".secrets/payload.txt")
 - `GATEWAY_URL` - URL of the OpenFaaS Gateway (default: http://127.0.0.1:8080)
 - `BASIC_AUTH_SECRET` - Basic auth secret to authenticate with the OpenFaaS Gateway (default: ".secrets/basic-auth-password.txt")
 
