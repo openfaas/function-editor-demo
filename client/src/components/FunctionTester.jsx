@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import './FunctionTester.css';
+import { apiFetch } from '../api';
 
 const defaultPayload = `{
   "name": "John Doe",
@@ -33,7 +34,7 @@ const FunctionTester = ({ functionName }) => {
     setLogsError(null);
     
     try {
-      const response = await fetch('/api/logs', {
+      const response = await apiFetch('/api/logs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ const FunctionTester = ({ functionName }) => {
       const parsedPayload = JSON.parse(payload);
       
       // Invoke the function through our proxy endpoint
-      const response = await fetch('/api/invoke', {
+      const response = await apiFetch('/api/invoke', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

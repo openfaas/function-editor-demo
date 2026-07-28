@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import './FunctionEditor.css';
+import { apiFetch } from '../api';
 
 const defaultHandler = `'use strict'
 
@@ -167,7 +168,7 @@ const FunctionEditor = ({ functionName }) => {
       }
       
       // Send the function code and package.json to the server
-      const response = await fetch('/api/publish', {
+      const response = await apiFetch('/api/publish', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -236,7 +237,7 @@ const FunctionEditor = ({ functionName }) => {
       console.log('Deploying with currentImageTag:', tagToUse);
       
       // Send the deployment request
-      const response = await fetch('/api/deploy', {
+      const response = await apiFetch('/api/deploy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

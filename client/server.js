@@ -9,6 +9,7 @@ import { spawn } from 'child_process';
 import * as tar from 'tar';
 import os from 'os';
 import path from 'path';
+import { createAuth } from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,6 +19,9 @@ const builderPayloadSecret = process.env.BUILDER_PAYLOAD_SECRET || ".secrets/pay
 const builderURL = process.env.BUILDER_URL || 'http://127.0.0.1:8081'
 const basicAuthSecret = process.env.BASIC_AUTH_SECRET || ".secrets/basic-auth-password.txt"
 const gatewayURL = process.env.GATEWAY_URL || 'http://127.0.0.1:8080'
+const editorUsername = process.env.EDITOR_USERNAME || 'admin'
+const editorPassword = process.env.EDITOR_PASSWORD
+const sessionSecret = process.env.SESSION_SECRET
 
 // Define templates directory
 const TEMPLATES_DIR = path.join(__dirname, 'templates');
@@ -116,10 +120,22 @@ downloadTemplates().catch(err => {
 });
 
 const app = express();
-const port = 3001;
+const port = Number(process.env.PORT || 3001);
 
 app.use(cors());
 app.use(express.json());
+
+const auth = createAuth({
+  username: editorUsername,
+  password: editorPassword,
+  sessionSecret,
+  secureCookies: process.env.NODE_ENV === 'production',
+});
+
+app.post('/api/auth/login', auth.login);
+app.post('/api/auth/logout', auth.logout);
+app.get('/api/auth/status', auth.status);
+app.use('/api', auth.requireAuth);
 
 // Generate a random string of specified length
 function generateRandomString(length) {

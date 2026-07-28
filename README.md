@@ -39,7 +39,9 @@ A couple of additional OpenFaaS API endpoints are exposed through the backend se
 - `/api/invoke` - Proxies the function's HTTP endpoint.
 - `/api/logs` - Uses the [OpenFaaS API's logs endpoint](https://docs.openfaas.com/reference/rest-api/#logs) to get the logs for the function.
 
-> Note: Authentication for the backend API is out of scope for this example. Keep in mind that for a production-ready app, some form of authentication should be added to protect the API endpoint.
+The editor and every function API endpoint require a login. The login exchanges the
+configured basic username and password for a signed, eight-hour, HttpOnly session
+cookie. The password is never stored in browser storage.
 
 ## Quick start
 
@@ -72,6 +74,10 @@ Configuration parameters:
 - `BUILDER_PAYLOAD_SECRET` - Path to the file containing the HMAC signing secret created during the installation of the function builder. (default: ".secrets/payload.txt")
 - `GATEWAY_URL` - URL of the OpenFaaS Gateway (default: http://127.0.0.1:8080)
 - `BASIC_AUTH_SECRET` - Basic auth secret to authenticate with the OpenFaaS Gateway (default: ".secrets/basic-auth-password.txt")
+- `EDITOR_USERNAME` - Username for the function editor login (default: `admin`)
+- `EDITOR_PASSWORD` - Password for the function editor login (required)
+- `SESSION_SECRET` - Random secret used to sign login cookies (required). Use at least 32 random bytes.
+- `PORT` - API server port (default: `3001`)
 
 - [Function Builder examples](https://github.com/openfaas/function-builder-examples)
 
@@ -103,6 +109,8 @@ kubectl port-forward \
 Start the server:
 
 ```sh
+EDITOR_PASSWORD="choose-a-strong-password" \
+SESSION_SECRET="$(openssl rand -hex 32)" \
 IMAGE_PREFIX="docker.io/your-repo" \
 npm run server
 ```

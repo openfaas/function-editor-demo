@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Editor from '@monaco-editor/react';
 import './CodeEditor.css';
+import { apiFetch } from '../api';
 
 const defaultHandler = `'use strict'
 
@@ -45,7 +46,7 @@ const CodeEditor = ({ functionName, setFunctionName }) => {
       // First publish the function
       setLogs(prev => [...prev, 'Building function using OpenFaaS sandbox builder...']);
       
-      const publishResponse = await fetch('/api/publish', {
+      const publishResponse = await apiFetch('/api/publish', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,7 +70,7 @@ const CodeEditor = ({ functionName, setFunctionName }) => {
       // Then deploy the function
       setLogs(prev => [...prev, 'Deploying function to OpenFaaS gateway...']);
       
-      const deployResponse = await fetch('/api/deploy', {
+      const deployResponse = await apiFetch('/api/deploy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
