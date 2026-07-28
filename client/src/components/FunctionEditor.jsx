@@ -291,6 +291,12 @@ const FunctionEditor = ({ functionName }) => {
 
   return (
     <div className="function-editor">
+      <div className="panel-header">
+        <div>
+          <span className="panel-kicker">Node.js 20</span>
+          <h2>{functionName}</h2>
+        </div>
+      </div>
       <div className="editor-description">
         Write your function logic in <code>handler.js</code> and specify npm modules in <code>packages.json</code>.
       </div>
@@ -317,11 +323,13 @@ const FunctionEditor = ({ functionName }) => {
             language="javascript"
             value={handlerCode}
             onChange={handleHandlerChange}
-            theme={window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'light'}
+            theme="light"
             options={{
               minimap: { enabled: false },
               fontSize: 14,
               lineNumbers: 'on',
+              wordWrap: 'on',
+              wrappingIndent: 'indent',
               roundedSelection: false,
               scrollBeyondLastLine: false,
               automaticLayout: true
@@ -333,11 +341,13 @@ const FunctionEditor = ({ functionName }) => {
             language="json"
             value={packageJson}
             onChange={handlePackageJsonChange}
-            theme={window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'light'}
+            theme="light"
             options={{
               minimap: { enabled: false },
               fontSize: 14,
               lineNumbers: 'on',
+              wordWrap: 'on',
+              wrappingIndent: 'indent',
               roundedSelection: false,
               scrollBeyondLastLine: false,
               automaticLayout: true

@@ -3,8 +3,10 @@ import './App.css'
 import FunctionEditor from './components/FunctionEditor'
 import FunctionTester from './components/FunctionTester'
 import Login from './components/Login'
+import Brand from './components/Brand'
 import './components/FunctionEditor.css'
 import './components/FunctionTester.css'
+import './dashboard-theme.css'
 
 function App() {
   const [activePage, setActivePage] = useState('editor');
@@ -31,7 +33,12 @@ function App() {
   };
 
   if (auth.loading) {
-    return <div className="auth-loading">Loading…</div>;
+    return (
+      <div className="auth-loading">
+        <span className="spinner"></span>
+        Loading Function Editor…
+      </div>
+    );
   }
 
   if (!auth.username) {
@@ -39,36 +46,60 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <div className="header">
-        <h1 className="title">Function Editor</h1>
+    <div className="app-shell">
+      <header className="topbar">
+        <a className="brand-link" href="/" aria-label="OpenFaaS Function Editor">
+          <Brand />
+        </a>
+
+        <nav className="navigation" aria-label="Function editor">
+          <button
+            className={`nav-button ${activePage === 'editor' ? 'active' : ''}`}
+            onClick={() => setActivePage('editor')}
+          >
+            Edit function
+          </button>
+          <button
+            className={`nav-button ${activePage === 'tester' ? 'active' : ''}`}
+            onClick={() => setActivePage('tester')}
+          >
+            Test function
+          </button>
+        </nav>
+
         <div className="header-meta">
-          <span className="branding">Powered by OpenFaaS</span>
-          <span>{auth.username}</span>
-          <button className="logout-button" onClick={logout}>Sign out</button>
+          <button className="logout-button" onClick={logout}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" />
+            </svg>
+            Sign out
+          </button>
         </div>
-      </div>
-      
-      <div className="navigation">
-        <button 
-          className={`nav-button ${activePage === 'editor' ? 'active' : ''}`}
-          onClick={() => setActivePage('editor')}
-        >
-          Edit Function
-        </button>
-        <button 
-          className={`nav-button ${activePage === 'tester' ? 'active' : ''}`}
-          onClick={() => setActivePage('tester')}
-        >
-          Test Function
-        </button>
-      </div>
-      
-      {activePage === 'editor' ? (
-        <FunctionEditor functionName={functionName} />
-      ) : (
-        <FunctionTester functionName={functionName} />
-      )}
+      </header>
+
+      <main className="app">
+        <div className="breadcrumbs">
+          <span>Functions</span><span aria-hidden="true">/</span><strong>{functionName}</strong>
+        </div>
+        <div className="page-heading">
+          <div>
+            <h1 className="title">{activePage === 'editor' ? 'Function editor' : 'Test function'}</h1>
+            <p>
+              {activePage === 'editor'
+                ? 'Edit the source, publish an image, and deploy it to OpenFaaS.'
+                : 'Invoke the deployed function and inspect its response and logs.'}
+            </p>
+          </div>
+        </div>
+
+        <section className="workspace-card">
+          {activePage === 'editor' ? (
+            <FunctionEditor functionName={functionName} />
+          ) : (
+            <FunctionTester functionName={functionName} />
+          )}
+        </section>
+      </main>
     </div>
   )
 }
