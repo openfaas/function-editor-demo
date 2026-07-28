@@ -77,6 +77,7 @@ Configuration parameters:
 - `EDITOR_USERNAME` - Username for the function editor login (default: `admin`)
 - `EDITOR_PASSWORD` - Password for the function editor login (required)
 - `SESSION_SECRET` - Random secret used to sign login cookies (required). Use at least 32 random bytes.
+- `SECURE_COOKIES` - Set to `true` when the editor is served over HTTPS to add the cookie's `Secure` flag (default: `false`)
 - `PORT` - API server port (default: `3001`)
 
 - [Function Builder examples](https://github.com/openfaas/function-builder-examples)
@@ -124,3 +125,24 @@ npm run dev
 ```
 
 Access the UI at: `http://127.0.0.1:5173/`
+
+### Run as a container
+
+The container runs the API and serves the compiled editor UI from the same
+process on port `3001`.
+
+```sh
+docker build -t function-editor .
+
+docker run --rm -p 3001:3001 \
+  -e EDITOR_PASSWORD="choose-a-strong-password" \
+  -e SESSION_SECRET="$(openssl rand -hex 32)" \
+  -e IMAGE_PREFIX="docker.io/your-repo" \
+  -e BUILDER_URL="http://builder.example.com" \
+  -e GATEWAY_URL="http://gateway.example.com" \
+  -v "$PWD/client/.secrets:/app/.secrets:ro" \
+  function-editor
+```
+
+Open `http://127.0.0.1:3001/`. When exposing the container through an HTTPS
+reverse proxy, also set `SECURE_COOKIES=true`.

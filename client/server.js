@@ -22,6 +22,7 @@ const gatewayURL = process.env.GATEWAY_URL || 'http://127.0.0.1:8080'
 const editorUsername = process.env.EDITOR_USERNAME || 'admin'
 const editorPassword = process.env.EDITOR_PASSWORD
 const sessionSecret = process.env.SESSION_SECRET
+const secureCookies = process.env.SECURE_COOKIES === 'true'
 
 // Define templates directory
 const TEMPLATES_DIR = path.join(__dirname, 'templates');
@@ -124,12 +125,17 @@ const port = Number(process.env.PORT || 3001);
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'dist')));
+
+app.get('/healthz', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
 const auth = createAuth({
   username: editorUsername,
   password: editorPassword,
   sessionSecret,
-  secureCookies: process.env.NODE_ENV === 'production',
+  secureCookies,
 });
 
 app.post('/api/auth/login', auth.login);
@@ -658,6 +664,15 @@ app.post('/api/logs', async (req, res) => {
       statusCode: error.response?.status || 500
     });
   }
+});
+
+// Let React handle non-API routes when the UI is served by this process.
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api/')) {
+    return res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  }
+
+  return next();
 });
 
 app.listen(port, () => {
