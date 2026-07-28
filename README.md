@@ -146,3 +146,55 @@ docker run --rm -p 3001:3001 \
 
 Open `http://127.0.0.1:3001/`. When exposing the container through an HTTPS
 reverse proxy, also set `SECURE_COOKIES=true`.
+
+### Deploy to Kubernetes
+
+Build and push the editor image to ttl.sh. The `24h` tag expires after 24 hours,
+so repush it when needed.
+
+```sh
+docker build -t ttl.sh/welteki/function-editor-demo-auth:24h .
+docker push ttl.sh/welteki/function-editor-demo-auth:24h
+```
+
+Create a namespace and a Secret containing the editor credentials plus the
+existing OpenFaaS gateway and builder secrets:
+
+```sh
+kubectl create namespace function-editor
+
+kubectl create secret generic function-editor-secrets \
+  --namespace function-editor \
+  --from-literal editor-password="choose-a-strong-password" \
+  --from-literal session-secret="$(openssl rand -hex 32)" \
+  --from-literal builder-payload-secret="$(
+    kubectl get secret payload-secret \
+      --namespace openfaas \
+      --output jsonpath='{.data.payload-secret}' | base64 --decode
+  )" \
+  --from-literal basic-auth-password="$(
+    kubectl get secret basic-auth \
+      --namespace openfaas \
+      --output jsonpath='{.data.basic-auth-password}' | base64 --decode
+  )"
+```
+
+Install the chart:
+
+```sh
+helm upgrade --install function-editor \
+  ./chart/function-editor \
+  --namespace function-editor
+```
+
+Open the editor locally:
+
+```sh
+kubectl port-forward \
+  --namespace function-editor \
+  service/function-editor 3001:3001
+```
+
+Then visit `http://127.0.0.1:3001/`. Override settings such as the gateway,
+builder, image tag, or service type in
+[`chart/function-editor/values.yaml`](chart/function-editor/values.yaml).

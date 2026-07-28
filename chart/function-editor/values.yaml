@@ -1,0 +1,55 @@
+replicaCount: 1
+
+image:
+  repository: ttl.sh/welteki/function-editor-demo-auth
+  tag: 24h
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3001
+
+config:
+  editorUsername: admin
+  secureCookies: false
+  imagePrefix: ttl.sh/welteki
+  builderURL: http://pro-builder.openfaas:8080
+  gatewayURL: http://gateway.openfaas:8080
+
+# Create this Secret before installing the chart. See README.md for the command.
+secret:
+  name: function-editor-secrets
+  editorPasswordKey: editor-password
+  sessionSecretKey: session-secret
+  builderPayloadSecretKey: builder-payload-secret
+  gatewayPasswordKey: basic-auth-password
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
