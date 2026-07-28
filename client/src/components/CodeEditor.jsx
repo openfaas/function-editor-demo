@@ -36,7 +36,7 @@ const CodeEditor = ({ functionName, setFunctionName }) => {
   const [isDeploying, setIsDeploying] = useState(false);
   const [logs, setLogs] = useState([]);
   const [showLogs, setShowLogs] = useState(false);
-  const lang = 'node20'; // Hard-coded language
+  const lang = 'node24'; // Hard-coded language
 
   const handleDeploy = async () => {
     setIsDeploying(true);

@@ -29,7 +29,7 @@ const TEMPLATES_DIR = path.join(__dirname, 'templates');
 
 // Function to download templates at server startup
 async function downloadTemplates() {
-  console.log('Downloading node20 template...');
+  console.log('Downloading node24 template...');
   console.log(`Templates directory: ${TEMPLATES_DIR}`);
   
   // Create templates directory if it doesn't exist
@@ -45,8 +45,8 @@ async function downloadTemplates() {
     }
   }
   
-  const template = 'node20';
-  // The template is actually downloaded to templates/template/node20
+  const template = 'node24';
+  // The template is actually downloaded to templates/template/node24
   const templateDir = path.join(TEMPLATES_DIR, 'template', template);
   console.log(`Template directory: ${templateDir}`);
   

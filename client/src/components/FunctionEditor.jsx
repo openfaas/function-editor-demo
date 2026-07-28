@@ -176,7 +176,7 @@ const FunctionEditor = ({ functionName }) => {
         body: JSON.stringify({
           functionName,
           handler: handlerCode,
-          lang: 'node20',
+          lang: 'node24',
           packageJson: parsedPackageJson
         }),
       });
@@ -293,7 +293,7 @@ const FunctionEditor = ({ functionName }) => {
     <div className="function-editor">
       <div className="panel-header">
         <div>
-          <span className="panel-kicker">Node.js 20</span>
+          <span className="panel-kicker">Node.js 24</span>
           <h2>{functionName}</h2>
         </div>
       </div>

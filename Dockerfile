@@ -21,7 +21,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=faas-cli /usr/bin/faas-cli /usr/local/bin/faas-cli
-RUN faas-cli template store pull node20
+RUN faas-cli template store pull node24
 
 FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production
