@@ -32,6 +32,11 @@ function App() {
     setAuth({ loading: false, username: null });
   };
 
+  const navigateTo = (page) => {
+    if (page === activePage) return;
+    setActivePage(page);
+  };
+
   if (auth.loading) {
     return (
       <div className="auth-loading">
@@ -52,21 +57,6 @@ function App() {
           <Brand />
         </a>
 
-        <nav className="navigation" aria-label="Function editor">
-          <button
-            className={`nav-button ${activePage === 'editor' ? 'active' : ''}`}
-            onClick={() => setActivePage('editor')}
-          >
-            Edit function
-          </button>
-          <button
-            className={`nav-button ${activePage === 'tester' ? 'active' : ''}`}
-            onClick={() => setActivePage('tester')}
-          >
-            Test function
-          </button>
-        </nav>
-
         <div className="header-meta">
           <button className="logout-button" onClick={logout}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -81,20 +71,24 @@ function App() {
         <div className="breadcrumbs">
           <span>Functions</span><span aria-hidden="true">/</span><strong>{functionName}</strong>
         </div>
-        <div className="page-heading">
+        <div className="page-heading function-heading">
           <div>
-            <h1 className="title">{activePage === 'editor' ? 'Function editor' : 'Test function'}</h1>
-            <p>
-              {activePage === 'editor'
-                ? 'Edit the source, publish an image, and deploy it to OpenFaaS.'
-                : 'Invoke the deployed function and inspect its response and logs.'}
-            </p>
+            <h1 className="title">{functionName}</h1>
+            <p>Edit, deploy, and test this OpenFaaS function.</p>
           </div>
         </div>
 
+        <nav className="workspace-tabs" aria-label="Function details">
+          <button className={activePage === 'editor' ? 'active' : ''} onClick={() => navigateTo('editor')}>Editor</button>
+          <button className={activePage === 'tester' ? 'active' : ''} onClick={() => navigateTo('tester')}>Test</button>
+        </nav>
+
         <section className="workspace-card">
           {activePage === 'editor' ? (
-            <FunctionEditor functionName={functionName} />
+            <FunctionEditor
+              functionName={functionName}
+              onNavigateTest={() => navigateTo('tester')}
+            />
           ) : (
             <FunctionTester functionName={functionName} />
           )}

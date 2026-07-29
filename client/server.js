@@ -16,20 +16,56 @@ const __dirname = dirname(__filename);
 
 const imagePrefix = process.env.IMAGE_PREFIX || "ttl.sh/openfaas"
 const builderPayloadSecret = process.env.BUILDER_PAYLOAD_SECRET || ".secrets/payload.txt"
+const builderPayloadSecretValue = process.env.BUILDER_PAYLOAD_SECRET_VALUE
 const builderURL = process.env.BUILDER_URL || 'http://127.0.0.1:8081'
 const basicAuthSecret = process.env.BASIC_AUTH_SECRET || ".secrets/basic-auth-password.txt"
+const basicAuthPassword = process.env.BASIC_AUTH_PASSWORD
 const gatewayURL = process.env.GATEWAY_URL || 'http://127.0.0.1:8080'
 const editorUsername = process.env.EDITOR_USERNAME || 'admin'
 const editorPassword = process.env.EDITOR_PASSWORD
 const sessionSecret = process.env.SESSION_SECRET
 const secureCookies = process.env.SECURE_COOKIES === 'true'
+const supportedTemplates = {
+  node24: {
+    id: 'node24',
+    label: 'Node.js 24',
+    files: [
+      { name: 'handler.js', language: 'javascript' },
+      { name: 'package.json', language: 'json' },
+    ],
+  },
+  'golang-middleware': {
+    id: 'golang-middleware',
+    label: 'Go middleware',
+    files: [
+      { name: 'handler.go', language: 'go' },
+      { name: 'go.mod', language: 'go' },
+    ],
+  },
+  'python3-http': {
+    id: 'python3-http',
+    label: 'Python HTTP',
+    files: [
+      { name: 'handler.py', language: 'python' },
+      { name: 'requirements.txt', language: 'plaintext' },
+    ],
+  },
+};
+const sourceHashAnnotation = 'function-editor.openfaas.com/source-hash';
+
+const readBuilderPayloadSecret = async () => (
+  builderPayloadSecretValue || (await fs.readFile(builderPayloadSecret, 'utf8')).trim()
+);
+
+const readGatewayPassword = async () => (
+  basicAuthPassword || (await fs.readFile(basicAuthSecret, 'utf8')).trim()
+);
 
 // Define templates directory
 const TEMPLATES_DIR = path.join(__dirname, 'templates');
 
 // Function to download templates at server startup
 async function downloadTemplates() {
-  console.log('Downloading node24 template...');
   console.log(`Templates directory: ${TEMPLATES_DIR}`);
   
   // Create templates directory if it doesn't exist
@@ -45,30 +81,17 @@ async function downloadTemplates() {
     }
   }
   
-  const template = 'node24';
-  // The template is actually downloaded to templates/template/node24
-  const templateDir = path.join(TEMPLATES_DIR, 'template', template);
-  console.log(`Template directory: ${templateDir}`);
-  
-  // Check if template already exists
-  try {
-    await fs.access(templateDir);
-    console.log(`Template ${template} already exists at ${templateDir}, skipping download`);
-    
-    // List contents of the template directory
+  for (const template of Object.keys(supportedTemplates)) {
+    const templateDir = path.join(TEMPLATES_DIR, 'template', template);
     try {
-      await fs.readdir(templateDir);
-    } catch (err) {
-      console.error(`Error reading template directory: ${err.message}`);
+      await fs.access(templateDir);
+      console.log(`Template ${template} already exists at ${templateDir}, skipping download`);
+      continue;
+    } catch {
+      console.log(`Template ${template} not found at ${templateDir}, downloading...`);
     }
-    
-    return;
-  } catch (err) {
-    // Template doesn't exist, download it
-    console.log(`Template ${template} not found at ${templateDir}, downloading...`);
-    
+
     try {
-      // Pull the template using faas-cli with absolute path
       await new Promise((resolve, reject) => {
         const cmd = spawn('faas-cli', ['template', 'store', 'pull', template], {
           cwd: TEMPLATES_DIR,
@@ -92,23 +115,11 @@ async function downloadTemplates() {
         });
       });
       
-      // Verify the template was downloaded
-      try {
-        await fs.access(templateDir);
-        console.log(`Template ${template} downloaded successfully to ${templateDir}`);
-        
-        // List contents of the template directory
-        try {
-          await fs.readdir(templateDir);
-        } catch (err) {
-          console.error(`Error reading template directory: ${err.message}`);
-        }
-      } catch (err) {
-        console.error(`Template ${template} was not found at ${templateDir} after download`);
-        throw new Error(`Template download failed: ${template} not found at ${templateDir}`);
-      }
+      await fs.access(templateDir);
+      console.log(`Template ${template} downloaded successfully to ${templateDir}`);
     } catch (err) {
       console.error(`Error downloading template ${template}:`, err);
+      throw err;
     }
   }
   
@@ -143,6 +154,40 @@ app.post('/api/auth/logout', auth.logout);
 app.get('/api/auth/status', auth.status);
 app.use('/api', auth.requireAuth);
 
+app.get('/api/templates', async (_req, res) => {
+  try {
+    const templates = await Promise.all(Object.values(supportedTemplates).map(async (template) => {
+      const functionDir = path.join(TEMPLATES_DIR, 'template', template.id, 'function');
+      const files = await Promise.all(template.files.map(async (file) => ({
+        ...file,
+        content: await fs.readFile(path.join(functionDir, file.name), 'utf8'),
+      })));
+      return { ...template, files };
+    }));
+    res.json({ templates });
+  } catch (error) {
+    res.status(500).json({ error: `Unable to load templates: ${error.message}` });
+  }
+});
+
+app.get('/api/functions/:functionName/deployment-hash', async (req, res) => {
+  try {
+    const password = await readGatewayPassword();
+    const response = await axios({
+      method: 'GET',
+      url: `${gatewayURL}/system/function/${encodeURIComponent(req.params.functionName)}`,
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`admin:${password}`).toString('base64')}`,
+      },
+      validateStatus: (status) => status === 200 || status === 404,
+    });
+    if (response.status === 404) return res.json({ hash: null });
+    return res.json({ hash: response.data?.annotations?.[sourceHashAnnotation] || null });
+  } catch (error) {
+    return res.status(502).json({ error: `Unable to read deployed function: ${error.message}` });
+  }
+});
+
 // Generate a random string of specified length
 function generateRandomString(length) {
   const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -153,7 +198,7 @@ function generateRandomString(length) {
   return result;
 }
 // Build function using OpenFaaS CLI
-async function buildFunction(functionName, handler, lang, packageJson = null) {
+async function buildFunction(functionName, lang, files, onEvent = () => {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'builder-'));
   
   try {
@@ -180,29 +225,22 @@ functions:
     const functionDir = path.join(tempDir, functionName);
     await fs.mkdir(functionDir, { recursive: true });
     
-    // Write handler.js file
-    await fs.writeFile(path.join(functionDir, 'handler.js'), handler, 'utf8');
-    
-    // Create package.json
-    const packageJsonContent = packageJson || {
-      "name": functionName,
-      "version": "1.0.0",
-      "description": "OpenFaaS function",
-      "main": "handler.js",
-      "scripts": {
-            "test": "echo 'Skipping tests' && exit 0"
-      },
-      "keywords": [],
-      "author": "",
-      "license": "ISC",
-      "dependencies": {}
-    };
-    
-    await fs.writeFile(
-      path.join(functionDir, 'package.json'), 
-      JSON.stringify(packageJsonContent, null, 2), 
-      'utf8'
-    );
+    const template = supportedTemplates[lang];
+    if (!template) {
+      throw new Error(`Unsupported template: ${lang}`);
+    }
+    const expectedFiles = new Set(template.files.map((file) => file.name));
+    for (const file of files || []) {
+      if (!expectedFiles.has(file.name) || typeof file.content !== 'string') {
+        throw new Error(`Invalid source file for ${lang}`);
+      }
+      await fs.writeFile(path.join(functionDir, file.name), file.content, 'utf8');
+    }
+    for (const fileName of expectedFiles) {
+      if (!(files || []).some((file) => file.name === fileName)) {
+        throw new Error(`Missing source file: ${fileName}`);
+      }
+    }
     
     // Copy the template instead of pulling it
     console.log(`Copying ${lang} template...`);
@@ -239,7 +277,7 @@ functions:
     );
     
     // Run shrinkwrap to create the build directory
-    console.log('Running shrinkwrap...');
+    onEvent({ status: 'in_progress', log: ['Preparing function build context'] });
     await new Promise((resolve, reject) => {
       const cmd = spawn('faas-cli', ['build', '--shrinkwrap'], {
         cwd: tempDir
@@ -298,34 +336,65 @@ functions:
     );
     
     // Read secret and calculate hash
-    let secret = await fs.readFile(builderPayloadSecret, 'utf8');
+    const secret = await readBuilderPayloadSecret();
     let data = await fs.readFile(tarFile);
     let hash = crypto
-      .createHmac('sha256', secret.trim())
+      .createHmac('sha256', secret)
       .update(data)
       .digest('hex');
     
-    // Send build request
+    onEvent({ status: 'in_progress', log: ['Uploading build context to the OpenFaaS builder'] });
+
+    // Send build request and consume the builder's NDJSON stream.
     try {
-      let res = await axios({
+      const builderResponse = await axios({
         data: data,
         method: 'post',
         url: `${builderURL}/build`,
         headers: {
           'Content-Type': 'application/octet-stream',
           'X-Build-Signature': 'sha256=' + hash,
-        }
+          'Accept': 'application/x-ndjson',
+        },
+        responseType: 'stream',
+        validateStatus: () => true,
       });
-      
+
+      if (builderResponse.status < 200 || builderResponse.status >= 300) {
+        let responseBody = '';
+        for await (const chunk of builderResponse.data) responseBody += chunk.toString();
+        throw new Error(responseBody || `Builder returned HTTP ${builderResponse.status}`);
+      }
+
+      let buffer = '';
+      let finalResult = null;
+      for await (const chunk of builderResponse.data) {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line);
+          onEvent(event);
+          if (event.status === 'success' || event.status === 'failed') finalResult = event;
+        }
+      }
+      if (buffer.trim()) {
+        const event = JSON.parse(buffer);
+        onEvent(event);
+        finalResult = event;
+      }
+      if (!finalResult) throw new Error('Builder stream ended without a final result');
       return {
-        success: true,
-        image: res.data.image,
-        message: `Success building image ${res.data.image}`
+        success: finalResult.status === 'success',
+        image: finalResult.image || image,
+        error: finalResult.error,
+        streamedFinal: true,
       };
     } catch (err) {
       return {
         success: false,
-        error: `Building image ${image} failed: ${err.response?.data?.status || err.message}`
+        error: `Building image ${image} failed: ${err.message}`
       };
     }
   } catch (err) {
@@ -334,51 +403,47 @@ functions:
       error: err.message
     };
   } finally {
-    // Clean up temp directory
-    // await fs.rm(tempDir, { recursive: true, force: true });
-    console.log("Wrote to: ", tempDir);
+    await fs.rm(tempDir, { recursive: true, force: true });
   }
 }
 
 // Publish endpoint - Builds the function and returns the image
 app.post('/api/publish', async (req, res) => {
   const startTime = Date.now();
+  res.status(200);
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  const sendEvent = (event) => {
+    if (!res.writableEnded) res.write(`${JSON.stringify(event)}\n`);
+  };
   try {
-    const { functionName, handler, lang, packageJson } = req.body;
+    const { functionName, lang, files } = req.body;
     
-    if (!functionName || !handler || !lang) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required parameters: functionName, handler, and lang are required'
-      });
+    if (!functionName || !lang || !Array.isArray(files)) {
+      sendEvent({ status: 'failed', error: 'functionName, lang, and files are required' });
+      return res.end();
     }
     
-    const result = await buildFunction(functionName, handler, lang, packageJson);
+    const result = await buildFunction(functionName, lang, files, sendEvent);
     
     const endTime = Date.now();
-    const publishTime = (endTime - startTime) / 1000; // Convert to seconds
-    
-    if (result.success) {
-      res.json({
-        ...result,
-        publishTime: publishTime.toFixed(2)
-      });
-    } else {
-      res.status(500).json({
-        ...result,
-        publishTime: publishTime.toFixed(2)
-      });
+    const publishTime = ((endTime - startTime) / 1000).toFixed(2);
+    if (!result.streamedFinal) {
+      sendEvent(result.success
+        ? { status: 'success', image: result.image, publishTime }
+        : { status: 'failed', error: result.error, publishTime });
     }
+    res.end();
   } catch (error) {
     const endTime = Date.now();
-    const publishTime = (endTime - startTime) / 1000; // Convert to seconds
-    
     console.error('Build error:', error);
-    res.status(500).json({
-      success: false,
+    sendEvent({
+      status: 'failed',
       error: error.message,
-      publishTime: publishTime.toFixed(2)
+      publishTime: ((endTime - startTime) / 1000).toFixed(2),
     });
+    res.end();
   }
 });
 
@@ -386,12 +451,12 @@ app.post('/api/publish', async (req, res) => {
 app.post('/api/deploy', async (req, res) => {
   const startTime = Date.now();
   try {
-    const { functionName, image } = req.body;
+    const { functionName, image, sourceHash } = req.body;
     
-    if (!functionName || !image) {
+    if (!functionName || !image || !/^[a-f0-9]{64}$/.test(sourceHash || '')) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required parameters: functionName and image are required'
+        error: 'functionName, image, and a valid sourceHash are required'
       });
     }
     
@@ -400,8 +465,7 @@ app.post('/api/deploy', async (req, res) => {
       // Read the password from the basic-auth-password.txt file
       let password = '';
       try {
-        password = await fs.readFile(basicAuthSecret, 'utf8');
-        password = password.trim(); // Remove any whitespace
+        password = await readGatewayPassword();
       } catch (err) {
         console.warn('Could not read basic-auth-password.txt, using empty password');
         password = '';
@@ -416,12 +480,13 @@ app.post('/api/deploy', async (req, res) => {
       const functionData = {
         service: functionName,
         image: image,
-        envProcess: "node index.js",
         labels: {
           "com.openfaas.scale.zero": "true",
           "com.openfaas.scale.zero-duration": "5m"
         },
-        annotations: {},
+        annotations: {
+          [sourceHashAnnotation]: sourceHash,
+        },
         limits:{
           "memory": "90Mi",
         }
@@ -505,8 +570,7 @@ app.post('/api/invoke', async (req, res) => {
     // Read the password from the basic-auth-password.txt file
     let password = '';
     try {
-      password = await fs.readFile(basicAuthSecret, 'utf8');
-      password = password.trim(); // Remove any whitespace
+      password = await readGatewayPassword();
     } catch (err) {
       console.warn('Could not read basic-auth-password.txt, using empty password');
       password = '';
@@ -571,8 +635,7 @@ app.post('/api/logs', async (req, res) => {
     // Read the password from the basic-auth-password.txt file
     let password = '';
     try {
-      password = await fs.readFile(basicAuthSecret, 'utf8');
-      password = password.trim(); // Remove any whitespace
+      password = await readGatewayPassword();
     } catch (err) {
       console.warn('Could not read basic-auth-password.txt, using empty password');
       password = '';

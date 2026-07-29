@@ -234,12 +234,6 @@ const FunctionTester = ({ functionName }) => {
 
   return (
     <div className="function-tester">
-      <div className="panel-header">
-        <div>
-          <span className="panel-kicker">Deployed function</span>
-          <h2>{functionName}</h2>
-        </div>
-      </div>
       <div className="tester-header">
         <p className="tester-description">
           Send a test payload to your function, to see how it responds, or view its logs
