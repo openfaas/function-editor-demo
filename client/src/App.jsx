@@ -79,8 +79,18 @@ function App() {
         </div>
 
         <nav className="workspace-tabs" aria-label="Function details">
-          <button className={activePage === 'editor' ? 'active' : ''} onClick={() => navigateTo('editor')}>Editor</button>
-          <button className={activePage === 'tester' ? 'active' : ''} onClick={() => navigateTo('tester')}>Test</button>
+          <button
+            className={activePage === 'editor' ? 'active' : ''}
+            onClick={() => navigateTo('editor')}
+          >
+            Editor
+          </button>
+          <button
+            className={activePage === 'tester' ? 'active' : ''}
+            onClick={() => navigateTo('tester')}
+          >
+            Test
+          </button>
         </nav>
 
         <section className="workspace-card">
