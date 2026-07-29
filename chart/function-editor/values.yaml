@@ -1,39 +1,71 @@
+# replicaCount is the number of editor pods to run.
 replicaCount: 1
 
 image:
-  repository: ttl.sh/welteki/function-editor-demo-auth
-  tag: 24h
+  # image.repository is the editor container image repository.
+  repository: ghcr.io/openfaas/function-editor-demo
+  # image.tag is the editor container image tag.
+  tag: 0.1.0
+  # image.pullPolicy is the Kubernetes image pull policy.
   pullPolicy: Always
 
+# imagePullSecrets contains image pull Secrets for private editor image registries.
 imagePullSecrets: []
+# nameOverride overrides the chart name used in resource names.
 nameOverride: ""
+# fullnameOverride overrides the fully qualified resource name.
 fullnameOverride: ""
 
 service:
+  # service.type is the Kubernetes Service type.
   type: ClusterIP
+  # service.port is the port exposed by the editor Service.
   port: 3001
 
 config:
+  # config.editorUsername is the username used to sign in to the editor.
   editorUsername: admin
+  # config.secureCookies adds the Secure attribute to session cookies.
   secureCookies: false
-  imagePrefix: ttl.sh/welteki
+  # config.imagePrefix is the registry prefix for function images.
+  imagePrefix: ttl.sh/openfaas
+  # config.builderURL is the URL of the OpenFaaS Function Builder API.
   builderURL: http://pro-builder.openfaas:8080
+  # config.gatewayURL is the URL of the OpenFaaS gateway.
   gatewayURL: http://gateway.openfaas:8080
 
-# Create this Secret before installing the chart. See README.md for the command.
-secret:
-  name: function-editor-secrets
-  editorPasswordKey: editor-password
-  sessionSecretKey: session-secret
-  builderPayloadSecretKey: builder-payload-secret
-  gatewayPasswordKey: basic-auth-password
+secrets:
+  editorPassword:
+    # secrets.editorPassword.name is the Secret containing the editor login password.
+    name: basic-auth
+    # secrets.editorPassword.key is the key containing the editor login password.
+    key: basic-auth-password
+  session:
+    # secrets.session.name is the Secret containing the session cookie signing key.
+    name: function-editor-session
+    # secrets.session.key is the key containing the session cookie signing key.
+    key: session-secret
+  gatewayBasicAuth:
+    # secrets.gatewayBasicAuth.name is the Secret containing the gateway password.
+    name: basic-auth
+    # secrets.gatewayBasicAuth.key is the key containing the gateway password.
+    key: basic-auth-password
+  builderPayload:
+    # secrets.builderPayload.name is the Secret containing the builder signing key.
+    name: payload-secret
+    # secrets.builderPayload.key is the key containing the builder signing key.
+    key: payload-secret
 
+# podAnnotations contains additional annotations for editor pods.
 podAnnotations: {}
+# podLabels contains additional labels for editor pods.
 podLabels: {}
 
+# podSecurityContext is the pod-level security context.
 podSecurityContext:
   fsGroup: 1000
 
+# securityContext is the security context for the editor container.
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:
@@ -43,6 +75,7 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 1000
 
+# resources configures editor pod resource requests and limits.
 resources:
   requests:
     cpu: 100m
@@ -50,6 +83,9 @@ resources:
   limits:
     memory: 512Mi
 
+# nodeSelector contains node labels used to schedule editor pods.
 nodeSelector: {}
+# tolerations contains tolerations used to schedule editor pods.
 tolerations: []
+# affinity contains affinity rules used to schedule editor pods.
 affinity: {}

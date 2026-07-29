@@ -2,7 +2,7 @@
 
 This repo contains a sample application that shows how OpenFaaS can be used to build a basic function editor that lets users edit, deploy and invoke custom code from the browser.
 
-The sample app consists of two parts: a frontend implemented as a single-page [React](https://react.dev/) application and an [Express](https://expressjs.com/) server for the backend API. Users can edit a Node.js function in the UI using a code editor. Clicking the *Publish & Deploy* button deploys the function to OpenFaaS. Once deployed, the *Test Function* page can be used to invoke the function, inspect responses and view the function logs.
+The sample app consists of a single-page [React](https://react.dev/) frontend and an [Express](https://expressjs.com/) backend API. In the Editor view, users can select a Node.js 24, Go middleware, or Python HTTP function template and edit its handler and dependency files. Clicking *Deploy* builds and publishes the function image, streams build progress into the editor, and deploys the function to OpenFaaS. The Test view can then be used to invoke the deployed function, inspect its response, and view its logs.
 
 This sample app is a basic implementation of the use case described in our blog post: [Integrate FaaS Capabilities into Your Platform with OpenFaaS](https://www.openfaas.com/blog/add-a-faas-capability/)
 
@@ -39,33 +39,58 @@ A couple of additional OpenFaaS API endpoints are exposed through the backend se
 - `/api/invoke` - Proxies the function's HTTP endpoint.
 - `/api/logs` - Uses the [OpenFaaS API's logs endpoint](https://docs.openfaas.com/reference/rest-api/#logs) to get the logs for the function.
 
-The editor and every function API endpoint require a login. The login exchanges the
-configured basic username and password for a signed, eight-hour, HttpOnly session
-cookie. The password is never stored in browser storage.
+Basic authentication is supported and used to protect the editor and its API endpoints.
 
-## Quick start
-
-Run the sample application locally.
-
-### Prerequisites
-
+## Prerequisites
 
 A Kubernetes cluster with OpenFaaS and the [OpenFaaS Function Builder API](https://docs.openfaas.com/openfaas-pro/builder/).
 
 > The Function Builder API provides a simple REST API to create your functions from source code. See [Function Builder API docs](https://docs.openfaas.com/openfaas-pro/builder/) for installation instructions.
 
-You will need a recent version of [Node.js](https://nodejs.org/en) to run the sample app locally.
+## Install with Helm
 
-### Run the app
+Deploy the editor with the Helm chart into the `openfaas` namespace. The chart
+uses the OpenFaaS `basic-auth` and Function Builder `payload-secret` Secrets by
+default. Create a Secret for signing editor sessions:
 
-Install node_modules:
+```sh
+kubectl create secret generic function-editor-session \
+  --namespace openfaas \
+  --from-literal session-secret="$(openssl rand -hex 32)"
+```
+
+This Secret signs the cookie used to keep users logged in to the editor.
+
+Set `config.imagePrefix` to a registry path where the Function Builder can push
+function images, replacing `docker.io/your-name` below with your own registry:
+
+```sh
+helm upgrade --install function-editor \
+  ./chart/function-editor \
+  --namespace openfaas \
+  --set config.imagePrefix=docker.io/your-name
+```
+
+Open the editor locally:
+
+```sh
+kubectl port-forward \
+  --namespace openfaas \
+  service/function-editor 3001:3001
+```
+
+Then visit `http://127.0.0.1:3001/` and sign in as `admin` using the OpenFaaS
+gateway password.
+
+## Development
+
+To run the editor locally, install a recent version of
+[Node.js](https://nodejs.org/en), then install the dependencies:
 
 ```sh
 cd client
 npm install
 ```
-
-**Run the API server**
 
 Configuration parameters:
 
@@ -80,34 +105,30 @@ Configuration parameters:
 - `SECURE_COOKIES` - Set to `true` when the editor is served over HTTPS to add the cookie's `Secure` flag (default: `false`)
 - `PORT` - API server port (default: `3001`)
 
-- [Function Builder examples](https://github.com/openfaas/function-builder-examples)
-
-Make sure the pro-builder is port-forwarded to port 8081 on the local host.
+Port-forward the Function Builder and OpenFaaS gateway:
 
 ```sh
 kubectl port-forward \
-    -n openfaas \
-    svc/pro-builder 8081:8080
+  --namespace openfaas \
+  service/pro-builder 8081:8080
+
+kubectl port-forward \
+  --namespace openfaas \
+  service/gateway 8080:8080
 ```
 
-Save the HMAC signing secret created during the installation to a file `./client/.secrets/payload.txt`.
+Save the Function Builder HMAC secret to `./client/.secrets/payload.txt`:
 
 ```sh
+mkdir -p .secrets
 kubectl get secret \
-    -n openfaas payload-secret -o jsonpath='{.data.payload-secret}' \
-    | base64 --decode \
-    > .secrets/payload.txt
+  --namespace openfaas \
+  payload-secret \
+  --output jsonpath='{.data.payload-secret}' \
+  | base64 --decode > .secrets/payload.txt
 ```
 
-Port forward the OpenFaaS Gateway:
-
-```sh
-kubectl port-forward \
-    -n openfaas \
-    svc/gateway 8080:8080
-```
-
-Start the server:
+Start the API server:
 
 ```sh
 EDITOR_PASSWORD="choose-a-strong-password" \
@@ -116,85 +137,10 @@ IMAGE_PREFIX="docker.io/your-repo" \
 npm run server
 ```
 
-**Run the frontend**
-
-Start the frontend server:
+In another terminal, start the frontend:
 
 ```sh
 npm run dev
 ```
 
 Access the UI at: `http://127.0.0.1:5173/`
-
-### Run as a container
-
-The container runs the API and serves the compiled editor UI from the same
-process on port `3001`.
-
-```sh
-docker build -t function-editor .
-
-docker run --rm -p 3001:3001 \
-  -e EDITOR_PASSWORD="choose-a-strong-password" \
-  -e SESSION_SECRET="$(openssl rand -hex 32)" \
-  -e IMAGE_PREFIX="docker.io/your-repo" \
-  -e BUILDER_URL="http://builder.example.com" \
-  -e GATEWAY_URL="http://gateway.example.com" \
-  -v "$PWD/client/.secrets:/app/.secrets:ro" \
-  function-editor
-```
-
-Open `http://127.0.0.1:3001/`. When exposing the container through an HTTPS
-reverse proxy, also set `SECURE_COOKIES=true`.
-
-### Deploy to Kubernetes
-
-Build and push the editor image to ttl.sh. The `24h` tag expires after 24 hours,
-so repush it when needed.
-
-```sh
-docker build -t ttl.sh/welteki/function-editor-demo-auth:24h .
-docker push ttl.sh/welteki/function-editor-demo-auth:24h
-```
-
-Create a namespace and a Secret containing the editor credentials plus the
-existing OpenFaaS gateway and builder secrets:
-
-```sh
-kubectl create namespace function-editor
-
-kubectl create secret generic function-editor-secrets \
-  --namespace function-editor \
-  --from-literal editor-password="choose-a-strong-password" \
-  --from-literal session-secret="$(openssl rand -hex 32)" \
-  --from-literal builder-payload-secret="$(
-    kubectl get secret payload-secret \
-      --namespace openfaas \
-      --output jsonpath='{.data.payload-secret}' | base64 --decode
-  )" \
-  --from-literal basic-auth-password="$(
-    kubectl get secret basic-auth \
-      --namespace openfaas \
-      --output jsonpath='{.data.basic-auth-password}' | base64 --decode
-  )"
-```
-
-Install the chart:
-
-```sh
-helm upgrade --install function-editor \
-  ./chart/function-editor \
-  --namespace function-editor
-```
-
-Open the editor locally:
-
-```sh
-kubectl port-forward \
-  --namespace function-editor \
-  service/function-editor 3001:3001
-```
-
-Then visit `http://127.0.0.1:3001/`. Override settings such as the gateway,
-builder, image tag, or service type in
-[`chart/function-editor/values.yaml`](chart/function-editor/values.yaml).
