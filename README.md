@@ -1,8 +1,10 @@
-# OpenFaaS Function Editor Example
+# OpenFaaS Function Editor Demo
 
-This repo contains a sample application that shows how OpenFaaS can be used to build a basic function editor that lets users edit, deploy and invoke custom code from the browser.
+> This is a demonstration application, not a production-ready OpenFaaS product.
+> It shows how the OpenFaaS APIs can be composed into a browser-based workflow
+> for editing, building, deploying, and testing functions.
 
-The sample app consists of a single-page [React](https://react.dev/) frontend and an [Express](https://expressjs.com/) backend API. In the Editor view, users can select a Node.js 24, Go middleware, or Python HTTP function template and edit its handler and dependency files. Clicking *Deploy* builds and publishes the function image, streams build progress into the editor, and deploys the function to OpenFaaS. The Test view can then be used to invoke the deployed function, inspect its response, and view its logs.
+The sample app consists of a single-page [React](https://react.dev/) frontend and an [Express](https://expressjs.com/) backend API. In the Editor view, users can select a [Node.js 24](https://docs.openfaas.com/languages/node/), [Go middleware](https://docs.openfaas.com/languages/go/), or [Python HTTP](https://docs.openfaas.com/languages/python/) function template and edit its handler and dependency files. Clicking *Deploy* builds and publishes the function image, streams build progress into the editor, and deploys the function to OpenFaaS. The Test view can then be used to invoke the deployed function, inspect its response, and view its logs.
 
 This sample app is a basic implementation of the use case described in our blog post: [Integrate FaaS Capabilities into Your Platform with OpenFaaS](https://www.openfaas.com/blog/add-a-faas-capability/)
 
@@ -81,6 +83,42 @@ kubectl port-forward \
 
 Then visit `http://127.0.0.1:3001/` and sign in as `admin` using the OpenFaaS
 gateway password.
+
+## Build performance considerations
+
+### Benchmark
+
+These build-to-deploy times were measured for a handler-only change after an
+initial build, with the Function Builder cache retained. The Function Builder ran
+on a 4 vCPU, 8 GiB K3s node.
+
+| Template | Docker Hub (`docker.io`) | Remote self-hosted | In-cluster |
+| --- | ---: | ---: | ---: |
+| Python HTTP | 4.0s | 1.1s | 0.7s |
+| Go middleware | 16.2s | 15.2s | 12.2s |
+| Node.js 24 | 3.9s | 1.2s | 0.9s |
+
+With a nearby registry, cached Python and Node handler changes can be built and
+deployed in around a second or less. Go updates take longer because the
+full function binary must be rebuilt, and compiled builds show greater timing
+variability.
+
+Actual times vary with templates, dependencies, registry bandwidth, cache
+state, and node contention.
+
+### Configuration guidance
+
+- **Node size:** Size the nodes where Function Builder is deployed for the
+  expected build workload; the benchmark above used 4 vCPUs and 8 GiB.
+- **Registry:** Place it close to Function Builder for faster iteration.
+- **Build cache:** Keep Function Builder running to retain its cache.
+- **Builder:** Prefer rootless BuildKit and review `buildkit.resources` and
+  `proBuilder.resources`. The default BuildKit request is 2 vCPUs and 2 GiB.
+- **Concurrency:** Increase resources or replicas for parallel builds, or use
+  `proBuilder.maxInflight` to limit builds accepted by each replica.
+
+See the [Function Builder Helm chart](https://github.com/openfaas/faas-netes/tree/master/chart/pro-builder)
+for all configuration options.
 
 ## Development
 
