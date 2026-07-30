@@ -1,0 +1,9 @@
+The function editor is running as service:
+
+  {{ include "function-editor.fullname" . }}:{{ .Values.service.port }}
+
+To open it locally:
+
+  kubectl port-forward svc/{{ include "function-editor.fullname" . }} 3001:{{ .Values.service.port }}
+
+Then visit http://127.0.0.1:3001/

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import './FunctionTester.css';
+import { apiFetch } from '../api';
 
 const defaultPayload = `{
   "name": "John Doe",
@@ -33,7 +34,7 @@ const FunctionTester = ({ functionName }) => {
     setLogsError(null);
     
     try {
-      const response = await fetch('/api/logs', {
+      const response = await apiFetch('/api/logs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ const FunctionTester = ({ functionName }) => {
       const parsedPayload = JSON.parse(payload);
       
       // Invoke the function through our proxy endpoint
-      const response = await fetch('/api/invoke', {
+      const response = await apiFetch('/api/invoke', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,211 +234,154 @@ const FunctionTester = ({ functionName }) => {
 
   return (
     <div className="function-tester">
-      <div className="tester-header">
-        <p className="tester-description">
-          Send a test payload to your function, to see how it responds, or view its logs
-        </p>
-      </div>
-      
-      <div className="tabs">
-        <button
-          className={`tab-button ${activeTab === 'payload' ? 'active' : ''}`}
-          onClick={() => setActiveTab('payload')}
-        >
-          Payload
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'logs' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('logs');
-            fetchLogs();
-          }}
-        >
-          Logs
-        </button>
+      <div className="tester-actions">
+        <div className="tabs">
+          <button
+            className={`tab-button ${activeTab === 'payload' ? 'active' : ''}`}
+            onClick={() => setActiveTab('payload')}
+          >
+            Invoke
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'logs' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('logs');
+              fetchLogs();
+            }}
+          >
+            Logs
+          </button>
+        </div>
       </div>
       
       <div className="tester-container">
         {activeTab === 'payload' ? (
-          <div className="payload-section">
-            <h3>Request Payload</h3>
-            <div className="editor-container">
-              <Editor
-                height="200px"
-                language="json"
-                value={payload}
-                onChange={handlePayloadChange}
-                theme={window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'light'}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  lineNumbers: 'on',
-                  roundedSelection: false,
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true
-                }}
-              />
-            </div>
-            
-            <div className="invoke-button-container">
-              <button
-                className="invoke-button"
-                onClick={handleInvoke}
-                disabled={isInvoking}
-              >
-                {isInvoking ? (
-                  <>
-                    <span className="spinner"></span>
-                    Invoking...
-                  </>
-                ) : (
-                  'Invoke Function'
-                )}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="logs-section">
-            <div className="logs-header">
-              <h3>Function Logs</h3>
-              <button
-                className="refresh-button"
-                onClick={fetchLogs}
-                disabled={isLoadingLogs}
-                title="Refresh logs"
-              >
-                {isLoadingLogs ? (
-                  <span className="spinner"></span>
-                ) : (
-                  '↻'
-                )}
-              </button>
-            </div>
-            
-            <div className="editor-container">
-              {isLoadingLogs ? (
-                <div className="logs-loading">
-                  <span className="spinner"></span>
-                  Loading logs...
+          <div className="test-workbench">
+            <section className="test-pane request-pane">
+              <header className="test-pane-header">
+                <div>
+                  <h3>Request</h3>
+                  <span>JSON payload</span>
                 </div>
-              ) : logsError ? (
-                <div className="logs-error">
-                  <p>Error: {logsError}</p>
+                <button className="invoke-button" onClick={handleInvoke} disabled={isInvoking}>
+                  {isInvoking ? <><span className="spinner"></span>Invoking…</> : 'Invoke'}
+                </button>
+              </header>
+              <div className="editor-container request-editor">
+                <Editor
+                  height="100%"
+                  language="json"
+                  value={payload}
+                  onChange={handlePayloadChange}
+                  theme="light"
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineNumbers: 'on',
+                    wordWrap: 'on',
+                    wrappingIndent: 'indent',
+                    roundedSelection: false,
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true
+                  }}
+                />
+              </div>
+            </section>
+
+            <section className="test-pane response-pane">
+              <header className="test-pane-header response-pane-header">
+                <div>
+                  <h3>Response</h3>
+                  <span className="response-summary">
+                    {statusCode ? (
+                      <>
+                        <b className={`status-${statusCode >= 200 && statusCode < 300 ? 'success' : 'error'}`}>{statusCode}</b>
+                        <span>{invocationTime}s</span>
+                        <span>{contentLength} bytes</span>
+                      </>
+                    ) : 'Awaiting invocation'}
+                  </span>
                 </div>
-              ) : (
-                <div className="logs-display" ref={logsRef}>
-                  <pre>{logs}</pre>
+                {statusCode && (
+                  <button className="details-link" onClick={() => setShowDetails(!showDetails)}>
+                    {showDetails ? 'Hide details' : 'View details'}
+                  </button>
+                )}
+              </header>
+
+              {showDetails && statusCode && (
+                <div className="response-details">
+                  <dl>
+                    <div><dt>Function</dt><dd>{functionName}</dd></div>
+                    <div><dt>Status</dt><dd>{statusCode}</dd></div>
+                    <div><dt>Duration</dt><dd>{invocationTime}s</dd></div>
+                  </dl>
+                  <div className="response-headers">
+                    <strong>Headers</strong>
+                    {headers && Object.keys(headers).length > 0 ? (
+                      <dl>
+                        {Object.entries(headers).map(([key, value]) => (
+                          <div key={key}><dt>{key}</dt><dd>{value}</dd></div>
+                        ))}
+                      </dl>
+                    ) : <span>No response headers</span>}
+                  </div>
                 </div>
               )}
-            </div>
-          </div>
-        )}
-        
-        <div className="response-section">
-          <h3>Response</h3>
-          {isInvoking ? (
-            <div className="response-loading">
-              <span className="spinner"></span>
-              Invoking function...
-            </div>
-          ) : error ? (
-            <div className="response-error">
-              <h4>Error</h4>
-              <pre>{error}</pre>
-            </div>
-          ) : (
-            <>
-              <div className="response-details-container">
-                <button 
-                  className="details-toggle"
-                  onClick={() => setShowDetails(!showDetails)}
-                >
-                  <span className="toggle-icon">{showDetails ? '▼' : '▶'}</span>
-                  Response Details
-                  <span className="meta-summary">
-                    {statusCode && (
-                      <span className={`status-${statusCode >= 200 && statusCode < 300 ? 'success' : 'error'}`}>
-                        {statusCode}
-                      </span>
-                    )}
-                    {invocationTime && <span>{invocationTime}s</span>}
-                    <span>{contentLength} bytes</span>
-                  </span>
-                </button>
-                
-                {showDetails && (
-                  <div className="response-meta-grid">
-                    <div className="meta-column">
-                      <h4>Response Info</h4>
-                      <div className="meta-item">
-                        <span className="meta-label">Time:</span>
-                        <span className="meta-value">{invocationTime || '-'}s</span>
-                      </div>
-                      <div className="meta-item">
-                        <span className="meta-label">Status:</span>
-                        <span className={`meta-value status-${statusCode >= 200 && statusCode < 300 ? 'success' : 'error'}`}>
-                          {statusCode || '-'}
-                        </span>
-                      </div>
-                      <div className="meta-item">
-                        <span className="meta-label">Function:</span>
-                        <span className="meta-value">{functionName}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="meta-column">
-                      <h4>Response Headers</h4>
-                      <div className="headers-table">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Header</th>
-                              <th>Value</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {headers && Object.entries(headers).map(([key, value]) => (
-                              <tr key={key}>
-                                <td>{key}</td>
-                                <td>{value}</td>
-                              </tr>
-                            ))}
-                            {(!headers || Object.keys(headers).length === 0) && (
-                              <tr>
-                                <td colSpan="2">No headers available</td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+
+              <div className="response-content">
+                {isInvoking ? (
+                  <div className="test-empty-state"><span className="spinner"></span>Invoking function…</div>
+                ) : error ? (
+                  <div className="response-error"><strong>Invocation failed</strong><pre>{error}</pre></div>
+                ) : responseText ? (
+                  <div className="editor-container response-body-editor">
+                    <Editor
+                      height="100%"
+                      language={responseContentType}
+                      value={responseText}
+                      theme="light"
+                      options={{
+                        readOnly: true,
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        wordWrap: 'on',
+                        wrappingIndent: 'indent',
+                        roundedSelection: false,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                      }}
+                    />
                   </div>
+                ) : (
+                  <div className="test-empty-state">Invoke the function to see its response.</div>
                 )}
               </div>
-              
-              <div className="response-editor">
-                <h4>Response Body</h4>
-                <div className="editor-container">
-                  <Editor
-                    height="300px"
-                    language={responseContentType}
-                    value={responseText}
-                    theme={window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'light'}
-                    options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      lineNumbers: 'on',
-                      roundedSelection: false,
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true,
-                    }}
-                  />
-                </div>
+            </section>
+          </div>
+        ) : (
+          <section className="logs-section">
+            <header className="test-pane-header">
+              <div>
+                <h3>Function logs</h3>
+                <span>Latest output from the deployed function</span>
               </div>
-            </>
-          )}
-        </div>
+              <button className="refresh-button" onClick={fetchLogs} disabled={isLoadingLogs}>
+                {isLoadingLogs ? <><span className="spinner"></span>Refreshing…</> : 'Refresh'}
+              </button>
+            </header>
+            <div className="logs-content">
+              {isLoadingLogs ? (
+                <div className="test-empty-state"><span className="spinner"></span>Loading logs…</div>
+              ) : logsError ? (
+                <div className="logs-error"><p>Error: {logsError}</p></div>
+              ) : (
+                <div className="logs-display" ref={logsRef}><pre>{logs}</pre></div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
       
       {showErrorModal && (

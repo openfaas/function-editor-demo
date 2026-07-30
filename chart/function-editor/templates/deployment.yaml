@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "function-editor.fullname" . }}
+  labels:
+    {{- include "function-editor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "function-editor.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "function-editor.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: function-editor
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3001"
+            - name: EDITOR_USERNAME
+              value: {{ .Values.config.editorUsername | quote }}
+            - name: EDITOR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.editorPassword.name | quote }}
+                  key: {{ .Values.secrets.editorPassword.key | quote }}
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.session.name | quote }}
+                  key: {{ .Values.secrets.session.key | quote }}
+            - name: SECURE_COOKIES
+              value: {{ .Values.config.secureCookies | quote }}
+            - name: IMAGE_PREFIX
+              value: {{ .Values.config.imagePrefix | quote }}
+            - name: BUILDER_URL
+              value: {{ .Values.config.builderURL | quote }}
+            - name: BUILDER_PAYLOAD_SECRET
+              value: /var/openfaas-secrets/builder-payload-secret
+            - name: GATEWAY_URL
+              value: {{ .Values.config.gatewayURL | quote }}
+            - name: BASIC_AUTH_SECRET
+              value: /var/openfaas-secrets/basic-auth-password
+          volumeMounts:
+            - name: openfaas-secrets
+              mountPath: /var/openfaas-secrets
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: openfaas-secrets
+          projected:
+            sources:
+              - secret:
+                  name: {{ .Values.secrets.builderPayload.name | quote }}
+                  items:
+                    - key: {{ .Values.secrets.builderPayload.key | quote }}
+                      path: builder-payload-secret
+              - secret:
+                  name: {{ .Values.secrets.gatewayBasicAuth.name | quote }}
+                  items:
+                    - key: {{ .Values.secrets.gatewayBasicAuth.key | quote }}
+                      path: basic-auth-password
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

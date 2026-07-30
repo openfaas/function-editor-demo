@@ -1,0 +1,8 @@
+.git
+.gitignore
+client/node_modules
+client/dist
+client/templates
+client/.secrets
+images
+*.md
