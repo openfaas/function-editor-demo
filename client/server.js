@@ -75,7 +75,7 @@ async function downloadTemplates() {
   } catch (err) {
     if (err.code !== 'EEXIST') {
       console.error('Error creating templates directory:', err);
-      return;
+      throw err;
     } else {
       console.log(`Templates directory already exists: ${TEMPLATES_DIR}`);
     }
@@ -126,10 +126,25 @@ async function downloadTemplates() {
   console.log('Template download complete');
 }
 
+async function verifyTemplates() {
+  await Promise.all(Object.values(supportedTemplates).flatMap((template) => (
+    template.files.map((file) => fs.access(
+      path.join(TEMPLATES_DIR, 'template', template.id, 'function', file.name),
+    ))
+  )));
+}
+
+let templatesReady = false;
+
 // Call downloadTemplates at server startup
-downloadTemplates().catch(err => {
-  console.error('Error downloading templates:', err);
-});
+downloadTemplates()
+  .then(verifyTemplates)
+  .then(() => {
+    templatesReady = true;
+  })
+  .catch(err => {
+    console.error('Error downloading templates:', err);
+  });
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
@@ -140,6 +155,14 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.get('/ready', (_req, res) => {
+  if (!templatesReady) {
+    return res.status(503).json({ status: 'not ready' });
+  }
+
+  return res.json({ status: 'ready' });
 });
 
 const auth = createAuth({

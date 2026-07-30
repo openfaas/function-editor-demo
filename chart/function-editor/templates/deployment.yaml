@@ -72,7 +72,7 @@ spec:
               mountPath: /tmp
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /ready
               port: http
             initialDelaySeconds: 2
             periodSeconds: 5

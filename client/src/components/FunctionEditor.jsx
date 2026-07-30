@@ -53,7 +53,15 @@ const FunctionEditor = ({ functionName, onNavigateTest }) => {
       })
       .then(({ templates: availableTemplates }) => {
         setTemplates(availableTemplates);
-        const saved = JSON.parse(localStorage.getItem(storageKey(functionName)) || 'null');
+        const key = storageKey(functionName);
+        let saved = null;
+
+        try {
+          saved = JSON.parse(localStorage.getItem(key) || 'null');
+        } catch {
+          localStorage.removeItem(key);
+        }
+
         const selected = availableTemplates.find((item) => item.id === saved?.templateId)
           || availableTemplates[0];
         setTemplateId(selected.id);
