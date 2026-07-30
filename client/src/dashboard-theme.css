@@ -907,6 +907,10 @@ button:focus-visible {
   border-radius: 3px;
 }
 
+.monaco-editor .iPadShowKeyboard {
+  display: none;
+}
+
 .editor-actions {
   margin-top: 0;
   padding-top: 2px;
@@ -1144,6 +1148,13 @@ button:focus-visible {
 }
 
 @media (max-width: 760px) {
+  input,
+  textarea,
+  select,
+  .monaco-editor .inputarea {
+    font-size: 16px !important;
+  }
+
   .topbar {
     flex-wrap: wrap;
     padding: 0;
